@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MySQL & PHP Quiz</title>
+<style>
+  :root{
+    --ink:#1b2430;
+    --paper:#eef1f0;
+    --panel:#ffffff;
+    --rule:#c7d0cd;
+    --accent:#1f6f5c;
+    --accent-dim:#a9c9c0;
+    --right:#1e7a3d;
+    --right-bg:#e3f5e6;
+    --wrong:#b3261e;
+    --wrong-bg:#fbe6e4;
+    --mono:'Courier New', ui-monospace, monospace;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:Georgia, 'Times New Roman', serif;
+    display:flex;
+    justify-content:center;
+    padding:32px 16px 64px;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:640px;
+  }
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:10px;
+    margin-bottom:6px;
+  }
+
+  h1{
+    font-size:1.35rem;
+    margin:0;
+    letter-spacing:0.2px;
+    font-weight:600;
+  }
+
+  #counter{
+    font-family:var(--mono);
+    font-size:0.85rem;
+    color:var(--accent);
+    white-space:nowrap;
+    padding-left:12px;
+  }
+
+  .progress-track{
+    height:4px;
+    background:var(--rule);
+    margin-bottom:28px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--accent);
+    width:0%;
+    transition:width .25s ease;
+  }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    padding:28px 26px 24px;
+  }
+
+  .qtext{
+    font-size:1.12rem;
+    line-height:1.5;
+    margin:0 0 18px;
+  }
+
+  pre.code{
+    font-family:var(--mono);
+    font-size:0.86rem;
+    background:#f4f6f5;
+    border-left:3px solid var(--accent-dim);
+    padding:12px 14px;
+    margin:0 0 18px;
+    overflow-x:auto;
+    line-height:1.45;
+    white-space:pre;
+  }
+
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .option{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    text-align:left;
+    width:100%;
+    padding:12px 14px;
+    background:var(--paper);
+    border:1px solid var(--rule);
+    font-family:inherit;
+    font-size:0.98rem;
+    color:var(--ink);
+    cursor:pointer;
+    transition:background .12s ease, border-color .12s ease, transform .05s ease;
+  }
+  .option:hover:not(:disabled){
+    border-color:var(--accent);
+  }
+  .option:active:not(:disabled){
+    transform:translateY(1px);
+  }
+  .option .lab{
+    font-family:var(--mono);
+    font-weight:700;
+    color:var(--accent);
+    flex-shrink:0;
+  }
+
+  .option.correct{
+    background:var(--right-bg);
+    border-color:var(--right);
+    color:var(--right);
+  }
+  .option.correct .lab{color:var(--right);}
+
+  .option.wrong{
+    background:var(--wrong-bg);
+    border-color:var(--wrong);
+    color:var(--wrong);
+  }
+  .option.wrong .lab{color:var(--wrong);}
+
+  .option:disabled{
+    cursor:default;
+  }
+
+  .feedback{
+    min-height:1.4em;
+    margin-top:16px;
+    font-family:var(--mono);
+    font-size:0.88rem;
+    font-weight:600;
+  }
+  .feedback.right{color:var(--right);}
+  .feedback.wrong{color:var(--wrong);}
+
+  footer{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:20px;
+  }
+
+  #next-btn{
+    font-family:inherit;
+    font-size:0.95rem;
+    padding:10px 22px;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    cursor:pointer;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .15s ease;
+  }
+  #next-btn.show{
+    opacity:1;
+    pointer-events:auto;
+  }
+  #next-btn:hover{background:var(--accent);}
+
+  .done{
+    text-align:center;
+    padding:60px 20px;
+  }
+  .done h2{margin-bottom:8px;}
+  .done p{color:#555;}
+  #restart-btn{
+    margin-top:22px;
+    font-family:inherit;
+    font-size:0.95rem;
+    padding:10px 24px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    cursor:pointer;
+  }
+
+  /* NEW: start screen styles */
+  .start-field{margin-bottom:16px;}
+  .start-field label{
+    display:block;
+    font-family:var(--mono);
+    font-size:0.85rem;
+    margin-bottom:6px;
+    color:var(--accent);
+    font-weight:700;
+  }
+  .start-field input{
+    width:100%;
+    padding:10px 12px;
+    font-family:inherit;
+    font-size:1rem;
+    border:1px solid var(--rule);
+    background:var(--paper);
+  }
+  #start-error{
+    min-height:1.4em;
+    margin-bottom:12px;
+    color:var(--wrong);
+    font-family:var(--mono);
+    font-size:0.88rem;
+    font-weight:600;
+  }
+  #start-btn{
+    font-family:inherit;
+    font-size:0.95rem;
+    padding:10px 24px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    cursor:pointer;
+  }
+
+  /* NEW: page footer */
+  .credit{
+    margin-top:36px;
+    padding-top:12px;
+    border-top:1px solid var(--rule);
+    text-align:center;
+    font-family:var(--mono);
+    font-size:0.82rem;
+    color:#555;
+  }
+
+  @media (max-width:480px){
+    .card{padding:20px 16px;}
+    h1{font-size:1.1rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Unit 1 to Unit 4 — Practice/Self Assessment</h1>
+    <div id="counter"></div>
+  </header>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+
+  <!-- NEW: start screen (name + roll no compulsory) -->
+  <div class="card" id="start-area">
+    <h2 style="margin-top:0">Enter your details to begin</h2>
+    <div class="start-field">
+      <label for="student-name">NAME</label>
+      <input type="text" id="student-name" autocomplete="off">
+    </div>
+    <div class="start-field">
+      <label for="roll-no">ROLL NO</label>
+      <input type="text" id="roll-no" autocomplete="off">
+    </div>
+    <div id="start-error"></div>
+    <button id="start-btn">Start Test</button>
+  </div>
+
+  <div class="card" id="quiz-area" style="display:none;"></div>
+
+  <footer>
+    <button id="next-btn">Next question →</button>
+  </footer>
+
+  <div class="credit">Powered by Mithili Kakodkar</div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {"q": "Which of the following best defines an 'Entity' in DBMS?", "o": ["A single data value", "A real-world object or concept about which data is stored", "A type of database user", "A query command"], "a": 1},
+  {"q": "A named property or characteristic of an entity is called a/an:", "o": ["Record", "Attribute", "File", "Schema"], "a": 1},
+  {"q": "A collection of related records stored together is called a:", "o": ["Field", "Attribute", "File", "Tuple"], "a": 2},
+  {"q": "Which type of user interacts with the database using pre-written application programs without knowing SQL?", "o": ["Naïve user", "Application programmer", "Database administrator", "Online/Sophisticated user"], "a": 0},
+  {"q": "Who is responsible for writing programs that access the database using DML/DDL?", "o": ["Naïve user", "Online user", "Application programmer", "End user"], "a": 2},
+  {"q": "Who is responsible for schema definition, granting authorization, and overall control of the database?", "o": ["Naïve user", "Application programmer", "Online user", "Database Administrator (DBA)"], "a": 3},
+  {"q": "In the 3-level (ANSI-SPARC) database architecture, which level describes how data is actually stored on the storage device?", "o": ["External level", "Conceptual level", "Internal (Physical) level", "Logical level"], "a": 2},
+  {"q": "The level of database architecture that describes the whole database structure for the community of users is the:", "o": ["Internal level", "Conceptual level", "External level", "View level"], "a": 1},
+  {"q": "The level that deals with individual user views of the database is called the:", "o": ["Internal level", "Physical level", "Conceptual level", "External level"], "a": 3},
+  {"q": "Which of the following is NOT a characteristic/advantage of DBMS?", "o": ["Data redundancy control", "Data consistency", "Increased data duplication", "Data sharing"], "a": 2},
+  {"q": "A major disadvantage of DBMS compared to file systems is:", "o": ["Reduced redundancy", "High cost of software and hardware", "Better data integrity", "Improved data security"], "a": 1},
+  {"q": "Hiding the internal details of how data is stored and presenting only relevant information to the user is called:", "o": ["Data redundancy", "Data abstraction", "Data integrity", "Data security"], "a": 1},
+  {"q": "Unnecessary duplication of data within a database is known as:", "o": ["Data integrity", "Data redundancy", "Data independence", "Data abstraction"], "a": 1},
+  {"q": "Data Integrity refers to:", "o": ["Physical storage of data", "The accuracy and consistency of stored data", "The number of users accessing data", "The speed of query execution"], "a": 1},
+  {"q": "Which of the following refers to protecting the database from unauthorized access?", "o": ["Data integrity", "Data redundancy", "Database security", "Data abstraction"], "a": 2},
+  {"q": "A candidate key that is chosen to uniquely identify tuples in a relation is called:", "o": ["Foreign key", "Composite key", "Primary key", "Secondary key"], "a": 2},
+  {"q": "A primary key that consists of two or more attributes is called a:", "o": ["Candidate key", "Composite key", "Foreign key", "Super key"], "a": 1},
+  {"q": "An attribute (or set of attributes) in one relation that refers to the primary key of another relation is called:", "o": ["Candidate key", "Foreign key", "Secondary key", "Composite key"], "a": 1},
+  {"q": "Entity Integrity rule states that:", "o": ["Foreign key values must match a primary key", "No attribute of a primary key can be NULL", "All attributes must have default values", "Every table must have a foreign key"], "a": 1},
+  {"q": "Referential Integrity rule ensures that:", "o": ["Primary key values are never duplicated", "A foreign key value must either match a primary key value in the referenced table or be NULL", "All NULL values are removed", "Tables cannot have relationships"], "a": 1},
+  {"q": "Domain integrity constraint ensures that:", "o": ["A column's values fall within a defined valid set/range", "Two tables cannot share a key", "Every row is unique", "Data is always sorted"], "a": 0},
+  {"q": "A NULL value in a database represents:", "o": ["Zero", "A blank space", "Unknown or missing data", "An error in the table"], "a": 2},
+  {"q": "The overall logical structure/design of an entire database is called the:", "o": ["Subschema", "Schema", "Instance", "View"], "a": 1},
+  {"q": "A subset of the schema representing the data relevant to a particular user or application is called a:", "o": ["Schema", "Subschema", "Super key", "Instance"], "a": 1},
+  {"q": "The Entity-Relationship (E-R) Model is primarily used for:", "o": ["Writing SQL queries", "Conceptual design/modeling of a database", "Physical storage allocation", "Network security"], "a": 1},
+  {"q": "Which SQL command is used to retrieve data from a MySQL table?", "o": ["GET", "SELECT", "FETCH", "EXTRACT"], "a": 1},
+  {"q": "Which command is used to add new records into a table?", "o": ["UPDATE", "INSERT", "ALTER", "CREATE"], "a": 1},
+  {"q": "Which command modifies existing records in a table?", "o": ["UPDATE", "INSERT", "DROP", "ALTER"], "a": 0},
+  {"q": "Which command permanently removes records from a table?", "o": ["DROP", "REMOVE", "DELETE", "DEL"], "a": 2},
+  {"q": "Which command is used to change the structure of an existing table (e.g., add a column)?", "o": ["UPDATE", "MODIFY", "ALTER", "CREATE"], "a": 2},
+  {"q": "Which command is used to create a new table or database in MySQL?", "o": ["MAKE", "CREATE", "NEW", "BUILD"], "a": 1},
+  {"q": "Which command permanently deletes an entire table or database structure?", "o": ["DELETE", "DROP", "REMOVE", "CLEAR"], "a": 1},
+  {"q": "Which command is used to leave the MySQL client program?", "o": ["EXIT or QUIT", "CLOSE", "END", "STOP"], "a": 0},
+  {"q": "Which clause restricts the number of rows returned by a SELECT query?", "o": ["TOP", "LIMIT", "ROWCOUNT", "MAX"], "a": 1},
+  {"q": "Which MySQL data type is used to store large blocks of text?", "o": ["INT", "TEXT", "DATE", "BOOLEAN"], "a": 1},
+  {"q": "Which of the following is a numeric data type in MySQL that stores the smallest range of integers?", "o": ["BIGINT", "INTEGER", "TINYINT", "MEDIUMINT"], "a": 2},
+  {"q": "Which numeric data type occupies more storage and stores the largest integer range?", "o": ["TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT"], "a": 3},
+  {"q": "FLOAT and DOUBLE are MySQL data types used for storing:", "o": ["Text strings", "Approximate/floating-point numeric values", "Dates only", "Boolean values"], "a": 1},
+  {"q": "Which string data type has a fixed length in MySQL?", "o": ["VARCHAR", "CHAR", "TEXT", "LONGTEXT"], "a": 1},
+  {"q": "Which string data type stores variable-length character strings?", "o": ["CHAR", "VARCHAR", "TINYTEXT", "None of the above"], "a": 1},
+  {"q": "Which of the following string types can store the largest amount of text data?", "o": ["TINYTEXT", "MEDIUMTEXT", "LONGTEXT", "VARCHAR"], "a": 2},
+  {"q": "Which operator category includes +, -, *, / and % in MySQL?", "o": ["Logical operators", "Comparison operators", "Arithmetic operators", "Wildcard operators"], "a": 2},
+  {"q": "Which operator category includes =, <>, >, < in MySQL?", "o": ["Arithmetic operators", "Comparison operators", "Logical operators", "Aggregate operators"], "a": 1},
+  {"q": "Which of the following are examples of logical operators in MySQL?", "o": ["AND, OR, NOT", "+, -, *", "=, !=", "LIKE, IN"], "a": 0},
+  {"q": "Which clause is used along with LIKE to search for a pattern using wildcards?", "o": ["WHERE", "GROUP BY", "ORDER BY", "HAVING"], "a": 0},
+  {"q": "The '%' wildcard in a LIKE clause represents:", "o": ["Exactly one character", "Zero, one, or multiple characters", "A numeric digit only", "A NULL value"], "a": 1},
+  {"q": "Which keyword is used to filter out duplicate rows from query results?", "o": ["UNIQUE", "DISTINCT", "FILTER", "SINGLE"], "a": 1},
+  {"q": "Which clause is used to arrange query results into groups sharing a common value?", "o": ["ORDER BY", "GROUP BY", "WHERE", "HAVING"], "a": 1},
+  {"q": "Which clause is used to filter groups after aggregation (used with GROUP BY)?", "o": ["WHERE", "HAVING", "LIMIT", "DISTINCT"], "a": 1},
+  {"q": "Which clause sorts the result set of a query?", "o": ["GROUP BY", "ORDER BY", "HAVING", "WHERE"], "a": 1},
+  {"q": "The BETWEEN operator is used to:", "o": ["Select values within a given range", "Join two tables", "Remove duplicate rows", "Sort results"], "a": 0},
+  {"q": "Which operator checks if a value matches any value in a specified list?", "o": ["BETWEEN", "IN", "LIKE", "UNION"], "a": 1},
+  {"q": "Which JOIN returns only the matching rows from both joined tables?", "o": ["OUTER JOIN", "INNER JOIN", "UNION JOIN", "CROSS JOIN"], "a": 1},
+  {"q": "Which SQL operator combines the result sets of two or more SELECT statements, removing duplicates?", "o": ["JOIN", "UNION", "INTERSECT", "MERGE"], "a": 1},
+  {"q": "Which MySQL function returns the absolute (non-negative) value of a number?", "o": ["ABS()", "SIGN()", "ROUND()", "FLOOR()"], "a": 0},
+  {"q": "Which function rounds a number UP to the nearest integer?", "o": ["FLOOR()", "CEILING()", "TRUNCATE()", "ROUND()"], "a": 1},
+  {"q": "Which function rounds a number DOWN to the nearest integer?", "o": ["CEILING()", "FLOOR()", "ROUND()", "SIGN()"], "a": 1},
+  {"q": "Which function returns a random floating-point value in MySQL?", "o": ["RAND()", "RANDOM()", "RND()", "ROUND()"], "a": 0},
+  {"q": "Which function returns the square root of a number?", "o": ["POWER()", "SQRT()", "ABS()", "MOD()"], "a": 1},
+  {"q": "Which function indicates the sign of a number (returns -1, 0, or 1)?", "o": ["SIGN()", "ABS()", "SIGNUM()", "POS()"], "a": 0},
+  {"q": "Which of the following is an aggregate function that calculates the mean (avg) of a numeric column?", "o": ["SUM()", "AVG()", "COUNT()", "MAX()"], "a": 1},
+  {"q": "Which aggregate function returns the total number of rows matching a criterion?", "o": ["COUNT()", "SUM()", "AVG()", "TOTAL()"], "a": 0},
+  {"q": "Which aggregate function adds up all values in a numeric column?", "o": ["AVG()", "COUNT()", "SUM()", "TOTAL()"], "a": 2},
+  {"q": "Which string function returns the ASCII numeric code of the leftmost character of a string?", "o": ["ASCII()", "CHAR()", "ORD()", "CODE()"], "a": 0},
+  {"q": "Which function joins two or more strings together?", "o": ["JOIN()", "CONCAT()", "APPEND()", "MERGE()"], "a": 1},
+  {"q": "Which function converts a string to lowercase in MySQL?", "o": ["UPPER()", "LOWER()", "LCASE() only", "Both LOWER() and LCASE()"], "a": 3},
+  {"q": "Which function removes leading spaces from a string?", "o": ["RTRIM()", "LTRIM()", "TRIM()", "STRIP()"], "a": 1},
+  {"q": "Which function removes trailing spaces from the right side of a string?", "o": ["LTRIM()", "TRIM()", "RTRIM()", "CLEAN()"], "a": 2},
+  {"q": "Which function returns the number of characters in a string?", "o": ["LENGTH()", "SIZE()", "COUNT()", "CHARLEN()"], "a": 0},
+  {"q": "Which function reverses the characters of a given string?", "o": ["FLIP()", "INVERT()", "REVERSE()", "MIRROR()"], "a": 2},
+  {"q": "Which function extracts a substring from a string, given a starting position and length?", "o": ["SUBSTRING()", "PART()", "EXTRACT()", "SPLIT()"], "a": 0},
+  {"q": "Which function returns the current date in MySQL?", "o": ["NOW()", "CURDATE()", "TODAY()", "GETDATE()"], "a": 1},
+  {"q": "Which function returns the current date AND time?", "o": ["CURDATE()", "CURTIME()", "NOW()", "TIME()"], "a": 2},
+  {"q": "Which function adds a specified time interval to a date value?", "o": ["DATE_ADD()", "ADD_DATE_TIME()", "DATE_PLUS()", "INCREASE_DATE()"], "a": 0},
+  {"q": "Which function subtracts a time interval from a date value?", "o": ["DATE_MINUS()", "DATE_SUB()", "SUB_DATE_TIME()", "DECREASE()"], "a": 1},
+  {"q": "Which function returns the weekday index for a given date?", "o": ["DAYOFWEEK()", "WEEKDAY_NUM()", "DAYNAME()", "DAY()"], "a": 0},
+  {"q": "Which function returns the number of days between two DATES using an internal day count?", "o": ["DATEDIFF()", "TO_DAYS()", "DAY_COUNT()", "DATE_COUNT()"], "a": 1},
+  {"q": "A database TRIGGER is best described as:", "o": ["A stored value", "A block of SQL code automatically executed in response to certain events on a table", "A user access privilege", "A type of index"], "a": 1},
+  {"q": "A VIEW in MySQL is:", "o": ["A physical copy of table data stored separately", "A virtual table based on the result of a stored SQL query", "A type of trigger", "A backup of the database"], "a": 1},
+  {"q": "What is a key difference between a VIEW and a TABLE?", "o": ["A view stores its own physical data permanently, a table does not", "A view does not store data itself; it dynamically shows data from underlying tables, while a table physically stores data", "There is no difference", "A table cannot be queried using SELECT"], "a": 1},
+  {"q": "Which tags are used to begin and end a PHP code block using standard tags?", "o": ["<php> ... <\/php>", "<?php ... ?>", "<script php> ... <\/script>", "{php} ... {/php}"], "a": 1},
+  {"q": "Which PHP function/statement outputs one or more strings to the browser?", "o": ["print/echo", "write()", "output()", "display()"], "a": 0},
+  {"q": "How are single-line comments typically written in PHP?", "o": ["# or //", "<!-- -->", "/* only */", "'' only"], "a": 0},
+  {"q": "In PHP, all variables must begin with which symbol?", "o": ["&", "$", "@", "#"], "a": 1},
+  {"q": "PHP variables are called 'dynamic variables' primarily because:", "o": ["They must be declared with a fixed data type", "Their data type is determined automatically at run-time based on the assigned value", "They cannot be reassigned", "They only store numbers"], "a": 1},
+  {"q": "Which of the following is NOT a basic PHP data type?", "o": ["Integer", "Boolean", "Array", "Pointer"], "a": 3},
+  {"q": "Which operator is used for string concatenation in PHP?", "o": ["+", "&", ".", "++"], "a": 2},
+  {"q": "Which PHP operator category includes ==, ===, !=, <, >?", "o": ["Arithmetic operators", "Comparison operators", "Assignment operators", "Concatenation operators"], "a": 1},
+  {"q": "Which PHP control statement executes one block of code if a condition is true and another if false?", "o": ["for loop", "if...else or switch", "while loop", "do while"], "a": 1},
+  {"q": "Which PHP statement is best suited for selecting one of many code blocks to execute based on a variable's value?", "o": ["if", "switch", "for", "foreach"], "a": 1},
+  {"q": "Which PHP loop is guaranteed to execute its block of code at least once?", "o": ["for", "while", "do...while", "foreach"], "a": 2},
+  {"q": "Which PHP loop is specifically designed to iterate over each element of an array?", "o": ["for", "while", "do...while", "foreach"], "a": 3},
+  {"q": "A block of PHP code designed to perform a specific task, which can be reused, is called a:", "o": ["Variable", "Function", "Array", "Loop"], "a": 1},
+  {"q": "A variable declared using the 'global' keyword inside a function refers to:", "o": ["A variable local to that function only", "A variable accessible from the global scope, outside the function", "A constant", "An array index"], "a": 1},
+  {"q": "Which PHP function creates an array by directly listing its elements?", "o": ["array()", "list()", "new Array()", "set()"], "a": 0},
+  {"q": "In an associative array, elements are accessed using:", "o": ["Only numeric indexes starting at 0", "Named keys instead of (or along with) numeric indexes", "Only negative indexes", "Random order values"], "a": 1},
+  {"q": "Which PHP loop construct is commonly used to iterate over the key-value pairs of an associative array?", "o": ["for", "foreach ($array as $key => $value)", "while(true)", "switch"], "a": 1},
+  {"q": "Which PHP construct is used to insert the content of one PHP file into another before execution?", "o": ["import", "include or require", "load()", "copy()"], "a": 1},
+  {"q": "What is the key difference between 'include' and 'require' in PHP?", "o": ["There is no difference", "'require' produces a fatal error and stops script execution if the file is not found, while 'include' only produces a warning and continues", "'include' can only be used once per script", "'require' cannot include PHP files"], "a": 1},
+  {"q": "Which superglobal array is used to collect data sent in a URL query string (form method='get')?", "o": ["$_POST", "$_GET", "$_REQUEST only", "$_FILES"], "a": 1},
+  {"q": "Which superglobal array is used to collect form data sent via HTTP POST method?", "o": ["$_GET", "$_POST", "$_SESSION", "$_COOKIE"], "a": 1},
+  {"q": "Which superglobal array in PHP is used to handle files uploaded via a form?", "o": ["$_GET", "$_POST", "$_FILES", "$_UPLOAD"], "a": 2},
+  {"q": "Which of the following is a common type of error that can occur during PHP file upload handling?", "o": ["UPLOAD_ERR_OK only", "File size exceeding limits, partial upload, or no file selected", "Errors cannot occur during upload", "Syntax errors only"], "a": 1},
+  {"q": "PHP Session variables are used to:", "o": ["Store data permanently in a database", "Store information about a user across multiple pages during a single browsing session", "Style a webpage", "Validate HTML forms only"], "a": 1},
+  {"q": "Which PHP function is used to open a file for reading or writing?", "o": ["open()", "fopen()", "file_open()", "readfile() only"], "a": 1},
+  {"q": "Which PHP function is used to close an open file resource?", "o": ["fclose()", "close()", "end()", "stop()"], "a": 0},
+  {"q": "Which file open mode starts at the beginning of the file and allows READ ONLY access?", "o": ["r", "w", "a", "x"], "a": 0},
+  {"q": "Which file open mode allows READ/WRITE access and starts at the beginning of the file (without erasing content)?", "o": ["r", "r+", "w", "a"], "a": 1},
+  {"q": "Which file open mode opens a file for WRITE ONLY, erasing its existing contents or creating a new file if it doesn't exist?", "o": ["r", "r+", "w", "a"], "a": 2},
+  {"q": "Which file open mode is for WRITE ONLY and creates a new file, but returns FALSE with an error if the file already exists?", "o": ["w", "a", "a+", "x"], "a": 3},
+  {"q": "Which file open mode APPENDS data to the end of a file, creating the file if it doesn't already exist?", "o": ["r", "w", "a", "x"], "a": 2},
+  {"q": "Which file open mode provides READ/APPEND access, preserving existing file content while writing new data to the end?", "o": ["a+", "w", "r", "x"], "a": 0}
+];
+
+const LETTERS = ["A","B","C","D"];
+let current = 0;
+let answered = false;
+let score = 0; // NEW
+
+const quizArea = document.getElementById('quiz-area');
+const nextBtn = document.getElementById('next-btn');
+const counter = document.getElementById('counter');
+const progressFill = document.getElementById('progress-fill');
+
+function render(){
+  answered = false;
+  nextBtn.classList.remove('show');
+  counter.textContent = `Question ${current + 1} / ${QUESTIONS.length}`;
+  progressFill.style.width = ((current) / QUESTIONS.length * 100) + '%';
+
+  const item = QUESTIONS[current];
+
+  let html = `<p class="qtext">${escapeHtml(item.q)}</p>`;
+  if(item.code){
+    html += `<pre class="code">${escapeHtml(item.code)}</pre>`;
+  }
+  html += `<div class="options">`;
+  item.o.forEach((opt, i) => {
+    html += `<button class="option" data-i="${i}"><span class="lab">${LETTERS[i]}</span><span>${escapeHtml(opt)}</span></button>`;
+  });
+  html += `</div><div class="feedback" id="feedback"></div>`;
+
+  quizArea.innerHTML = html;
+
+  quizArea.querySelectorAll('.option').forEach(btn => {
+    btn.addEventListener('click', onSelect);
+  });
+}
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function onSelect(e){
+  if(answered) return;
+  answered = true;
+
+  const chosen = parseInt(e.currentTarget.dataset.i, 10);
+  const item = QUESTIONS[current];
+  const options = quizArea.querySelectorAll('.option');
+  const feedback = document.getElementById('feedback');
+
+  options.forEach(btn => btn.disabled = true);
+
+  if(chosen === item.a){
+    score++; // NEW
+    options[chosen].classList.add('correct');
+    feedback.textContent = "Correct.";
+    feedback.className = "feedback right";
+  } else {
+    options[chosen].classList.add('wrong');
+    options[item.a].classList.add('correct');
+    feedback.textContent = "Incorrect — correct answer highlighted.";
+    feedback.className = "feedback wrong";
+  }
+
+  if(current < QUESTIONS.length - 1){
+    nextBtn.classList.add('show');
+    nextBtn.textContent = "Next question →";
+  } else {
+    nextBtn.classList.add('show');
+    nextBtn.textContent = "Finish";
+  }
+}
+
+nextBtn.addEventListener('click', () => {
+  if(current < QUESTIONS.length - 1){
+    current++;
+    render();
+  } else {
+    showDone();
+  }
+});
+
+function showDone(){
+  progressFill.style.width = '100%';
+  counter.textContent = `Question ${QUESTIONS.length} / ${QUESTIONS.length}`;
+  quizArea.innerHTML = `
+    <div class="done">
+      <h2>All done.</h2>
+      <p>You've gone through all ${QUESTIONS.length} questions.</p>
+      <h2>Your Score: ${score} / ${QUESTIONS.length}</h2>
+      <button id="restart-btn">Restart quiz</button>
+    </div>`;
+  nextBtn.classList.remove('show');
+  document.getElementById('restart-btn').addEventListener('click', () => {
+    current = 0;
+    score = 0; // NEW
+    render();
+  });
+}
+
+// NEW: start button - name and roll no are compulsory (values are not used)
+document.getElementById('start-btn').addEventListener('click', () => {
+  const name = document.getElementById('student-name').value.trim();
+  const roll = document.getElementById('roll-no').value.trim();
+  const err = document.getElementById('start-error');
+  if(!name || !roll){
+    err.textContent = "Please enter both your Name and Roll No to start the test.";
+    return;
+  }
+  // Valid roll no: 131 to 145, or V-131 to V-135
+  const rollNum = /^(13[1-9]|14[0-5])$/;
+  const rollV = /^V-(13[1-5])$/i;
+  if(!(rollNum.test(roll) || rollV.test(roll))){
+    err.textContent = "Invalid roll number";
+    return;
+  }
+  err.textContent = "";
+  document.getElementById('start-area').style.display = 'none';
+  quizArea.style.display = 'block';
+  render();
+});
+</script>
+</body>
+</html>
